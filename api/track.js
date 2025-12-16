@@ -36,12 +36,16 @@ export default async function handler(req, res) {
     await kv.lpush('visits', JSON.stringify(visitData));
     await kv.ltrim('visits', 0, 9999); // Keep only last 10,000
 
-    // Track unique IPs in a set
+    // Track unique IPs in a set (network-level identification)
     await kv.sadd('unique_ips', ip);
 
-    // Track unique visitors by IP only (same as distinct IPs)
-    // This represents actual unique visitors, not page visits
-    await kv.sadd('unique_visitors', ip);
+    // Track unique visitors by visitorId (browser-level identification)
+    // This is more accurate than IP because:
+    // - Multiple people behind same IP (NAT, corporate) = multiple visitors, one IP
+    // - Same person on different networks = one visitor, multiple IPs
+    if (req.body.visitorId) {
+      await kv.sadd('unique_visitors', req.body.visitorId);
+    }
 
     res.status(200).json({ success: true });
   } catch (error) {

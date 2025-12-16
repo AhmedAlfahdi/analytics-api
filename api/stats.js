@@ -24,7 +24,7 @@ export default async function handler(req, res) {
     // Get all visits - handle empty case
     const visits = await kv.lrange('visits', 0, -1) || [];
     const uniqueIPs = await kv.smembers('unique_ips') || [];
-    const uniqueVisitors = await kv.smembers('unique_visitors') || [];
+    const uniqueVisitorIds = await kv.smembers('unique_visitors') || [];
 
     // Parse visit data - handle empty array
     const visitData = visits.length > 0 
@@ -169,7 +169,7 @@ export default async function handler(req, res) {
     res.json({
       totalViews: pageViews.length,
       distinctIPs: uniqueIPs.length,
-      uniqueVisitors: uniqueVisitors.length,
+      uniqueVisitors: uniqueVisitorIds.length,
       topPage: topPages[0]?.path || '/',
       topPages: topPages,
       recentVisitors: recentVisitors,
