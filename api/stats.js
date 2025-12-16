@@ -21,18 +21,29 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Get all visits
-    const visits = await kv.lrange('visits', 0, -1);
-    const uniqueIPs = await kv.smembers('unique_ips');
-    const uniqueVisitors = await kv.smembers('unique_visitors');
+    // Get all visits - handle empty case
+    const visits = await kv.lrange('visits', 0, -1) || [];
+    const uniqueIPs = await kv.smembers('unique_ips') || [];
+    const uniqueVisitors = await kv.smembers('unique_visitors') || [];
 
-    // Parse visit data
-    const visitData = visits.map(v => JSON.parse(v));
+    // Parse visit data - handle empty array
+    const visitData = visits.length > 0 
+      ? visits.map(v => {
+          try {
+            return typeof v === 'string' ? JSON.parse(v) : v;
+          } catch (e) {
+            console.warn('Failed to parse visit:', v, e);
+            return null;
+          }
+        }).filter(v => v !== null)
+      : [];
 
     // Count page views per path
     const pageCounts = {};
     visitData.forEach(visit => {
-      pageCounts[visit.path] = (pageCounts[visit.path] || 0) + 1;
+      if (visit && visit.path) {
+        pageCounts[visit.path] = (pageCounts[visit.path] || 0) + 1;
+      }
     });
 
     // Get top pages
@@ -45,10 +56,11 @@ export default async function handler(req, res) {
     const recentVisitors = visitData
       .slice(-20)
       .reverse()
+      .filter(v => v && v.ip && v.path)
       .map(v => ({
         ip: v.ip,
         path: v.path,
-        timestamp: v.timestamp,
+        timestamp: v.timestamp || new Date().toISOString(),
       }));
 
     res.json({
@@ -61,6 +73,11 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('Error getting stats:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 }
