@@ -39,9 +39,9 @@ export default async function handler(req, res) {
     // Track unique IPs in a set
     await kv.sadd('unique_ips', ip);
 
-    // Track unique visitors by IP+path combination (optional)
-    const visitorKey = `${ip}:${visitData.path}`;
-    await kv.sadd('unique_visitors', visitorKey);
+    // Track unique visitors by IP only (same as distinct IPs)
+    // This represents actual unique visitors, not page visits
+    await kv.sadd('unique_visitors', ip);
 
     res.status(200).json({ success: true });
   } catch (error) {
