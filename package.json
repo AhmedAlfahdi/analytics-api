@@ -1,0 +1,10 @@
+{
+  "name": "analytics-api-vercel",
+  "version": "1.0.0",
+  "description": "Vercel serverless functions for visitor analytics",
+  "main": "index.js",
+  "dependencies": {
+    "@vercel/kv": "^1.0.0"
+  }
+}
+
