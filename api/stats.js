@@ -143,6 +143,13 @@ export default async function handler(req, res) {
     const avgPagesPerSession = Object.keys(pagesPerSession).length > 0
       ? (Object.values(pagesPerSession).reduce((a, b) => a + b, 0) / Object.keys(pagesPerSession).length).toFixed(1)
       : '0';
+    
+    // Bounce Rate: Percentage of sessions with only 1 page view
+    const singlePageSessions = Object.values(pagesPerSession).filter(count => count === 1).length;
+    const totalSessionsCount = Object.keys(pagesPerSession).length;
+    const bounceRate = totalSessionsCount > 0
+      ? Math.round((singlePageSessions / totalSessionsCount) * 100)
+      : 0;
 
     // Get recent visitors (last 20)
     const recentVisitors = pageViews
@@ -180,7 +187,8 @@ export default async function handler(req, res) {
       avgTimeOnPage: avgTimeOnPage,
       avgScrollDepth: avgScrollDepth,
       totalSessions: uniqueSessions.size,
-      avgPagesPerSession: avgPagesPerSession
+      avgPagesPerSession: avgPagesPerSession,
+      bounceRate: bounceRate
     });
   } catch (error) {
     console.error('Error getting stats:', error);
