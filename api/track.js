@@ -4,6 +4,35 @@
 
 import { kv } from '@vercel/kv';
 
+// Optional: external IP geolocation fallback when Vercel geo headers are missing
+async function lookupGeoFromIp(ip) {
+  try {
+    if (!ip || ip === 'unknown') return null;
+
+    const response = await fetch(`https://ipapi.co/${encodeURIComponent(ip)}/json/`);
+    if (!response.ok) {
+      console.warn('Geo lookup failed with status', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+
+    const lat = typeof data.latitude === 'number' ? data.latitude : parseFloat(data.latitude);
+    const lon = typeof data.longitude === 'number' ? data.longitude : parseFloat(data.longitude);
+
+    return {
+      countryCode: data.country_code || null,
+      regionCode: data.region_code || null,
+      city: data.city || null,
+      latitude: Number.isFinite(lat) ? lat : null,
+      longitude: Number.isFinite(lon) ? lon : null,
+    };
+  } catch (error) {
+    console.warn('Geo lookup error for IP', ip, error);
+    return null;
+  }
+}
+
 export default async function handler(req, res) {
   // Enable CORS - allow all origins
   const origin = req.headers.origin;
@@ -38,13 +67,21 @@ export default async function handler(req, res) {
     const longitude = typeof longitudeHeader === 'string' ? parseFloat(longitudeHeader) : null;
 
     // Normalize into user-friendly fields while still keeping raw codes
-    const geo = {
+    let geo = {
       countryCode,
       regionCode,
       city,
       latitude: Number.isFinite(latitude) ? latitude : null,
       longitude: Number.isFinite(longitude) ? longitude : null,
     };
+
+    // If Vercel headers did not provide geo, fall back to external IP lookup
+    if (!geo.countryCode && !geo.city && (geo.latitude === null || geo.longitude === null)) {
+      const fallbackGeo = await lookupGeoFromIp(ip);
+      if (fallbackGeo) {
+        geo = fallbackGeo;
+      }
+    }
 
     const visitData = {
       ...req.body,
