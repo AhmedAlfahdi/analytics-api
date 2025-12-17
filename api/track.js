@@ -26,10 +26,31 @@ export default async function handler(req, res) {
                req.headers['x-real-ip'] || 
                'unknown';
 
+    // Extract basic geo information from Vercel Edge headers (if available)
+    // See: https://vercel.com/docs/concepts/edge-network/headers#geolocation
+    const countryCode = req.headers['x-vercel-ip-country'] || null;
+    const regionCode = req.headers['x-vercel-ip-country-region'] || null;
+    const city = req.headers['x-vercel-ip-city'] || null;
+    const latitudeHeader = req.headers['x-vercel-ip-latitude'];
+    const longitudeHeader = req.headers['x-vercel-ip-longitude'];
+
+    const latitude = typeof latitudeHeader === 'string' ? parseFloat(latitudeHeader) : null;
+    const longitude = typeof longitudeHeader === 'string' ? parseFloat(longitudeHeader) : null;
+
+    // Normalize into user-friendly fields while still keeping raw codes
+    const geo = {
+      countryCode,
+      regionCode,
+      city,
+      latitude: Number.isFinite(latitude) ? latitude : null,
+      longitude: Number.isFinite(longitude) ? longitude : null,
+    };
+
     const visitData = {
       ...req.body,
       ip: ip,
       timestamp: new Date().toISOString(),
+      ...geo,
     };
 
     // Store visit in a list (keeps last 10,000 visits)

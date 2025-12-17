@@ -162,8 +162,15 @@ export default async function handler(req, res) {
         timestamp: v.timestamp || new Date().toISOString(),
         deviceType: v.deviceType,
         browser: v.browser,
+        os: v.os,
         sourceType: v.sourceType,
-        source: v.source
+        source: v.source,
+        // Basic geo info from Vercel headers (if present)
+        countryCode: v.countryCode || null,
+        regionCode: v.regionCode || null,
+        city: v.city || null,
+        latitude: typeof v.latitude === 'number' ? v.latitude : null,
+        longitude: typeof v.longitude === 'number' ? v.longitude : null,
       }));
 
     res.json({
