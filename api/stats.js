@@ -151,11 +151,12 @@ export default async function handler(req, res) {
       ? Math.round((singlePageSessions / totalSessionsCount) * 100)
       : 0;
 
-    // Get recent visitors (last 20)
+    // Get recent visitors (newest first).
+    // We use LPUSH when writing, so index 0 is the most recent event.
+    // Taking slice(0, 20) gives us the latest 20 instead of the oldest 20.
     const recentVisitors = pageViews
-      .slice(-20)
-      .reverse()
       .filter(v => v && v.ip && v.path)
+      .slice(0, 20)
       .map(v => ({
         ip: v.ip,
         path: v.path,
