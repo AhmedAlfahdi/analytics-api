@@ -90,6 +90,8 @@ export default async function handler(req, res) {
       }
     }
 
+    console.log('analytics-track geo', { ip, geo });
+
     const visitData = {
       ...req.body,
       ip: ip,
