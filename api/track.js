@@ -50,6 +50,13 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Lightweight version marker + header keys for debugging in Vercel logs
+    console.log('analytics-track v2', {
+      vercelEnv: process.env.VERCEL_ENV,
+      headerKeys: Object.keys(req.headers || {}),
+      now: new Date().toISOString(),
+    });
+
     // Extract IP from headers (Vercel provides this)
     const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || 
                req.headers['x-real-ip'] || 
