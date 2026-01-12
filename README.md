@@ -31,7 +31,7 @@ This is the recommended solution for tracking website visitors. It uses Vercel S
 **Option A: Deploy as separate project (Recommended)**
 
 1. Create a new repository on GitHub (e.g., `your-username/analytics-api`)
-2. Copy the `vercel-api` folder contents to this repository
+2. Copy the `analytics-api` folder contents to this repository
 3. In Vercel dashboard, click **Add New Project**
 4. Import your `analytics-api` repository
 5. Add environment variable:
@@ -44,7 +44,7 @@ This is the recommended solution for tracking website visitors. It uses Vercel S
 
 **Option B: Deploy in same project (if using Vercel for hosting)**
 
-1. Add the `vercel-api/api` folder to your main website repository
+1. Add the `analytics-api/api` folder to your main website repository
 2. Add environment variables in Vercel project settings
 3. Deploy
 

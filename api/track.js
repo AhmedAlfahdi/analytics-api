@@ -1,5 +1,5 @@
 // Vercel Serverless Function for tracking page views
-// Deploy this to Vercel by creating a 'vercel-api' directory and deploying it
+// Deploy this to Vercel by creating an 'analytics-api' directory and deploying it
 // Uses Upstash Redis (compatible with @vercel/kv)
 
 import { kv } from '@vercel/kv';
