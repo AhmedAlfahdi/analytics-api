@@ -63,6 +63,13 @@ export default async function handler(req, res) {
     // Filter out localhost IPs from unique IPs count
     const nonLocalhostIPs = uniqueIPs.filter(ip => !isLocalhost(ip));
 
+    // Calculate unique visitors from filtered pageViews (excludes localhost)
+    const uniqueVisitorIdsFromFiltered = new Set(
+      pageViews
+        .map(v => v.visitorId)
+        .filter(Boolean)
+    );
+
     // Count page views per path
     const pageCounts = {};
     pageViews.forEach(visit => {
@@ -199,7 +206,7 @@ export default async function handler(req, res) {
     res.json({
       totalViews: pageViews.length,
       distinctIPs: nonLocalhostIPs.length,
-      uniqueVisitors: uniqueVisitorIds.length,
+      uniqueVisitors: uniqueVisitorIdsFromFiltered.size,
       topPage: topPages[0]?.path || '/',
       topPages: topPages,
       recentVisitors: recentVisitors,
