@@ -19,6 +19,17 @@ function isLocalhost(ip) {
   return false;
 }
 
+// Check if a traffic source is localhost
+function isLocalhostSource(source) {
+  if (!source) return false;
+  const sourceLower = source.toLowerCase().trim();
+  return sourceLower === 'localhost' || 
+         sourceLower.includes('localhost') || 
+         sourceLower.includes('127.0.0.1') ||
+         sourceLower.startsWith('http://localhost') ||
+         sourceLower.startsWith('https://localhost');
+}
+
 export default async function handler(req, res) {
   // Enable CORS - allow all origins
   const origin = req.headers.origin;
@@ -112,10 +123,10 @@ export default async function handler(req, res) {
     const trafficSources = {};
     const sourceTypes = {};
     pageViews.forEach(visit => {
-      if (visit && visit.sourceType) {
+      if (visit && visit.sourceType && !isLocalhostSource(visit.sourceType)) {
         sourceTypes[visit.sourceType] = (sourceTypes[visit.sourceType] || 0) + 1;
       }
-      if (visit && visit.source) {
+      if (visit && visit.source && !isLocalhostSource(visit.source)) {
         trafficSources[visit.source] = (trafficSources[visit.source] || 0) + 1;
       }
     });
