@@ -11,10 +11,10 @@
 
 ## Step 2: Push Code to GitHub
 
-Open terminal in the `vercel-api` folder and run:
+Open terminal in the `analytics-api` folder and run:
 
 ```bash
-cd vercel-api
+cd analytics-api
 git init
 git add .
 git commit -m "Initial commit - Analytics API"
