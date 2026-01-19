@@ -4,6 +4,21 @@
 
 import { kv } from '@vercel/kv';
 
+// Check if an IP address is localhost
+function isLocalhost(ip) {
+  if (!ip || ip === 'unknown') return false;
+  const ipLower = ip.toLowerCase().trim();
+  // Check for IPv4 localhost (127.0.0.0/8 range)
+  if (ipLower === '127.0.0.1' || ipLower === 'localhost' || ipLower.startsWith('127.')) {
+    return true;
+  }
+  // Check for IPv6 localhost
+  if (ipLower === '::1' || ipLower === '::ffff:127.0.0.1') {
+    return true;
+  }
+  return false;
+}
+
 export default async function handler(req, res) {
   // Enable CORS - allow all origins
   const origin = req.headers.origin;
@@ -38,9 +53,15 @@ export default async function handler(req, res) {
         }).filter(v => v !== null)
       : [];
 
+    // Filter out localhost visits
+    const nonLocalhostVisits = visitData.filter(v => v && !isLocalhost(v.ip));
+
     // Filter out exit events for main analytics (keep them for engagement metrics)
-    const pageViews = visitData.filter(v => !v.eventType || v.eventType !== 'page_exit');
-    const exitEvents = visitData.filter(v => v.eventType === 'page_exit');
+    const pageViews = nonLocalhostVisits.filter(v => !v.eventType || v.eventType !== 'page_exit');
+    const exitEvents = nonLocalhostVisits.filter(v => v.eventType === 'page_exit');
+
+    // Filter out localhost IPs from unique IPs count
+    const nonLocalhostIPs = uniqueIPs.filter(ip => !isLocalhost(ip));
 
     // Count page views per path
     const pageCounts = {};
@@ -154,8 +175,9 @@ export default async function handler(req, res) {
     // Get recent visitors (newest first).
     // We use LPUSH when writing, so index 0 is the most recent event.
     // Taking slice(0, 35) gives us the latest 35 instead of the oldest events.
+    // Filter out localhost IPs
     const recentVisitors = pageViews
-      .filter(v => v && v.ip && v.path)
+      .filter(v => v && v.ip && v.path && !isLocalhost(v.ip))
       .slice(0, 35)
       .map(v => ({
         ip: v.ip,
@@ -176,7 +198,7 @@ export default async function handler(req, res) {
 
     res.json({
       totalViews: pageViews.length,
-      distinctIPs: uniqueIPs.length,
+      distinctIPs: nonLocalhostIPs.length,
       uniqueVisitors: uniqueVisitorIds.length,
       topPage: topPages[0]?.path || '/',
       topPages: topPages,

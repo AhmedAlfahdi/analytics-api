@@ -4,6 +4,21 @@
 
 import { kv } from '@vercel/kv';
 
+// Check if an IP address is localhost
+function isLocalhost(ip) {
+  if (!ip || ip === 'unknown') return false;
+  const ipLower = ip.toLowerCase().trim();
+  // Check for IPv4 localhost (127.0.0.0/8 range)
+  if (ipLower === '127.0.0.1' || ipLower === 'localhost' || ipLower.startsWith('127.')) {
+    return true;
+  }
+  // Check for IPv6 localhost
+  if (ipLower === '::1' || ipLower === '::ffff:127.0.0.1') {
+    return true;
+  }
+  return false;
+}
+
 // Optional: external IP geolocation fallback when Vercel geo headers are missing
 async function lookupGeoFromIp(ip) {
   try {
@@ -91,6 +106,12 @@ export default async function handler(req, res) {
     }
 
     console.log('analytics-track geo', { ip, geo });
+
+    // Skip tracking if IP is localhost
+    if (isLocalhost(ip)) {
+      console.log('Skipping localhost visit:', ip);
+      return res.status(200).json({ success: true, skipped: true, reason: 'localhost' });
+    }
 
     const visitData = {
       ...req.body,
