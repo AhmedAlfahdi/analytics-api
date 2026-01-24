@@ -49,6 +49,8 @@ export default async function handler(req, res) {
   try {
     // Get all visits - handle empty case
     const visits = await kv.lrange('visits', 0, -1) || [];
+    // Get server-side logs (backup tracking)
+    const serverLogs = await kv.lrange('server_logs', 0, -1) || [];
     const uniqueIPs = await kv.smembers('unique_ips') || [];
     const uniqueVisitorIds = await kv.smembers('unique_visitors') || [];
 
@@ -63,9 +65,25 @@ export default async function handler(req, res) {
           }
         }).filter(v => v !== null)
       : [];
+    
+    // Parse server logs and merge with visit data
+    const serverLogData = serverLogs.length > 0
+      ? serverLogs.map(v => {
+          try {
+            return typeof v === 'string' ? JSON.parse(v) : v;
+          } catch (e) {
+            console.warn('Failed to parse server log:', v, e);
+            return null;
+          }
+        }).filter(v => v !== null)
+      : [];
+    
+    // Merge server logs with visits (server logs are backup, so only add if not already tracked)
+    // For simplicity, we'll include both but mark server logs differently
+    const allVisitData = [...visitData, ...serverLogData];
 
     // Filter out localhost visits
-    const nonLocalhostVisits = visitData.filter(v => v && !isLocalhost(v.ip));
+    const nonLocalhostVisits = allVisitData.filter(v => v && !isLocalhost(v.ip));
 
     // Filter out exit events for main analytics (keep them for engagement metrics)
     const pageViews = nonLocalhostVisits.filter(v => !v.eventType || v.eventType !== 'page_exit');
@@ -194,6 +212,7 @@ export default async function handler(req, res) {
     // We use LPUSH when writing, so index 0 is the most recent event.
     // Taking slice(0, 300) gives us the latest 300 instead of the oldest events.
     // Filter out localhost IPs
+    // Include both client-side and server-side logs
     const recentVisitors = pageViews
       .filter(v => v && v.ip && v.path && !isLocalhost(v.ip))
       .slice(0, 300)
@@ -201,11 +220,11 @@ export default async function handler(req, res) {
         ip: v.ip,
         path: v.path,
         timestamp: v.timestamp || new Date().toISOString(),
-        deviceType: v.deviceType,
-        browser: v.browser,
-        os: v.os,
-        sourceType: v.sourceType,
-        source: v.source,
+        deviceType: v.deviceType || (v.source === 'server-log' ? 'unknown' : null),
+        browser: v.browser || null,
+        os: v.os || null,
+        sourceType: v.sourceType || (v.source === 'server-log' ? 'server-log' : null),
+        source: v.source || (v.referrer && v.referrer !== 'direct' ? v.referrer : 'direct'),
         // Basic geo info from Vercel headers (if present)
         countryCode: v.countryCode || null,
         regionCode: v.regionCode || null,
