@@ -8,11 +8,9 @@ import { kv } from '@vercel/kv';
 function isLocalhost(ip) {
   if (!ip || ip === 'unknown') return false;
   const ipLower = ip.toLowerCase().trim();
-  // Check for IPv4 localhost (127.0.0.0/8 range)
   if (ipLower === '127.0.0.1' || ipLower === 'localhost' || ipLower.startsWith('127.')) {
     return true;
   }
-  // Check for IPv6 localhost
   if (ipLower === '::1' || ipLower === '::ffff:127.0.0.1') {
     return true;
   }
@@ -79,7 +77,6 @@ export default async function handler(req, res) {
       : [];
     
     // Merge server logs with visits (server logs are backup, so only add if not already tracked)
-    // For simplicity, we'll include both but mark server logs differently
     const allVisitData = [...visitData, ...serverLogData];
 
     // Filter out localhost visits
@@ -149,6 +146,14 @@ export default async function handler(req, res) {
       }
     });
 
+    // Country breakdown (NEW)
+    const countryCounts = {};
+    pageViews.forEach(visit => {
+      if (visit && visit.countryCode) {
+        countryCounts[visit.countryCode] = (countryCounts[visit.countryCode] || 0) + 1;
+      }
+    });
+
     // New vs returning visitors
     let newVisitors = 0;
     let returningVisitors = 0;
@@ -198,72 +203,53 @@ export default async function handler(req, res) {
       }
     });
     const avgPagesPerSession = Object.keys(pagesPerSession).length > 0
-      ? (Object.values(pagesPerSession).reduce((a, b) => a + b, 0) / Object.keys(pagesPerSession).length).toFixed(1)
-      : '0';
-    
-    // Bounce Rate: Percentage of sessions with only 1 page view
-    const singlePageSessions = Object.values(pagesPerSession).filter(count => count === 1).length;
-    const totalSessionsCount = Object.keys(pagesPerSession).length;
-    const bounceRate = totalSessionsCount > 0
-      ? Math.round((singlePageSessions / totalSessionsCount) * 100)
+      ? Math.round((Object.values(pagesPerSession).reduce((a, b) => a + b, 0) / Object.keys(pagesPerSession).length) * 10) / 10
       : 0;
 
-    // Get recent visitors (newest first).
-    // We use LPUSH when writing, so index 0 is the most recent event.
-    // Taking slice(0, 300) gives us the latest 300 instead of the oldest events.
-    // Filter out localhost IPs
-    // Include both client-side and server-side logs
-    const recentVisitors = pageViews
-      .filter(v => v && v.ip && v.path && !isLocalhost(v.ip))
-      .slice(0, 300)
-      .map(v => ({
-        ip: v.ip,
-        path: v.path,
-        timestamp: v.timestamp || new Date().toISOString(),
-        deviceType: v.deviceType || (v.source === 'server-log' ? 'unknown' : null),
-        browser: v.browser || null,
-        os: v.os || null,
-        sourceType: v.sourceType || (v.source === 'server-log' ? 'server-log' : null),
-        source: v.source || (v.referrer && v.referrer !== 'direct' ? v.referrer : 'direct'),
-        // Basic geo info from Vercel headers (if present)
-        countryCode: v.countryCode || null,
-        regionCode: v.regionCode || null,
-        city: v.city || null,
-        latitude: typeof v.latitude === 'number' ? v.latitude : null,
-        longitude: typeof v.longitude === 'number' ? v.longitude : null,
-      }));
+    // Bounce rate (sessions with only 1 page view)
+    const sessionCount = Object.keys(pagesPerSession).length;
+    let bounceRate = 0;
+    if (sessionCount > 0) {
+      const bounceSessions = Object.values(pagesPerSession).filter(pages => pages === 1).length;
+      bounceRate = Math.round((bounceSessions / sessionCount) * 100);
+    }
 
-    res.json({
+    // Recent visitors (last 20)
+    const recentVisitors = pageViews.slice(-20).reverse();
+
+    // Convert object breakdowns to sorted arrays for easier frontend consumption
+    const toSortedArray = (obj) =>
+      Object.entries(obj)
+        .map(([key, count]) => ({ name: key, count }))
+        .sort((a, b) => b.count - a.count);
+
+    res.status(200).json({
       totalViews: pageViews.length,
       distinctIPs: nonLocalhostIPs.length,
       uniqueVisitors: uniqueVisitorIdsFromFiltered.size,
       topPage: topPages[0]?.path || '/',
-      topPages: topPages,
-      recentVisitors: recentVisitors,
-      
-      // Enhanced metrics
-      deviceTypes: Object.entries(deviceTypes).map(([type, count]) => ({ type, count })),
-      browsers: Object.entries(browsers).map(([browser, count]) => ({ browser, count })),
-      operatingSystems: Object.entries(operatingSystems).map(([os, count]) => ({ os, count })),
-      trafficSources: Object.entries(trafficSources).map(([source, count]) => ({ source, count })).sort((a, b) => b.count - a.count),
-      sourceTypes: Object.entries(sourceTypes).map(([type, count]) => ({ type, count })),
-      newVisitors: newVisitors,
-      returningVisitors: returningVisitors,
-      visitsByHour: Object.entries(visitsByHour).map(([hour, count]) => ({ hour: parseInt(hour), count })),
-      visitsByDay: Object.entries(visitsByDay).map(([day, count]) => ({ day, count })),
-      avgTimeOnPage: avgTimeOnPage,
-      avgScrollDepth: avgScrollDepth,
+      topPages,
+      recentVisitors,
+      deviceTypes: toSortedArray(deviceTypes),
+      browsers: toSortedArray(browsers),
+      operatingSystems: toSortedArray(operatingSystems),
+      trafficSources: toSortedArray(trafficSources),
+      sourceTypes: toSortedArray(sourceTypes),
+      countries: toSortedArray(countryCounts),   // NEW
+      countryCounts,                                // NEW (raw counts by code)
+      newVisitors,
+      returningVisitors,
       totalSessions: uniqueSessions.size,
-      avgPagesPerSession: avgPagesPerSession,
-      bounceRate: bounceRate
+      avgPagesPerSession,
+      bounceRate,
+      avgTimeOnPage,
+      avgScrollDepth,
+      timeOnPageValues,
+      visitsByHour: toSortedArray(visitsByHour).sort((a, b) => parseInt(a.name) - parseInt(b.name)),
+      visitsByDay: toSortedArray(visitsByDay),
     });
   } catch (error) {
     console.error('Error getting stats:', error);
-    console.error('Error stack:', error.stack);
-    res.status(500).json({ 
-      error: 'Internal server error',
-      message: error.message,
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
+    res.status(500).json({ error: 'Internal server error' });
   }
 }
