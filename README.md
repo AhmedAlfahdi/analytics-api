@@ -51,19 +51,19 @@ This is the recommended solution for tracking website visitors. It uses Vercel S
 ### 4. Get Your API URL
 
 After deployment, Vercel will give you a URL like:
-- `https://analytics-api.vercel.app` (production)
+- `https://analytics-api-one.vercel.app` (production)
 - `https://analytics-api-xxx.vercel.app` (preview)
 
 Your API endpoints will be:
-- `https://analytics-api.vercel.app/api/track`
-- `https://analytics-api.vercel.app/api/stats`
+- `https://analytics-api-one.vercel.app/api/track`
+- `https://analytics-api-one.vercel.app/api/stats`
 
 ### 5. Configure Your Website
 
 In your website's environment variables (or `.env` file for local):
 
 ```
-PUBLIC_ANALYTICS_API=https://analytics-api.vercel.app/api
+PUBLIC_ANALYTICS_API=https://analytics-api-one.vercel.app/api
 ```
 
 For GitHub Pages, you'll need to set this in your build process or use a different approach (see below).

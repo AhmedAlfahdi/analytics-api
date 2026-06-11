@@ -60,11 +60,11 @@ Click **Deploy** and wait for it to complete (~1-2 minutes).
 ## Step 7: Get Your API URL
 
 After deployment, you'll see:
-- Production URL: `https://analytics-api.vercel.app` (or similar)
+- Production URL: `https://analytics-api-one.vercel.app` (or similar)
 
 Your endpoints:
-- `https://analytics-api.vercel.app/api/track`
-- `https://analytics-api.vercel.app/api/stats`
+- `https://analytics-api-one.vercel.app/api/track`
+- `https://analytics-api-one.vercel.app/api/stats`
 
 ## Step 8: Configure Your Website
 
@@ -72,14 +72,14 @@ Add this to your website's environment variables:
 
 **For local development** (`.env` file):
 ```
-PUBLIC_ANALYTICS_API=https://analytics-api.vercel.app/api
+PUBLIC_ANALYTICS_API=https://analytics-api-one.vercel.app/api
 ```
 
 **For production** (GitHub Secrets):
 1. Go to your main website repo → Settings → Secrets and variables → Actions
 2. New repository secret:
    - Name: `PUBLIC_ANALYTICS_API`
-   - Value: `https://analytics-api.vercel.app/api`
+   - Value: `https://analytics-api-one.vercel.app/api`
 
 ## Step 9: Test
 
