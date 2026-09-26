@@ -43,15 +43,23 @@ git push -u origin main
 
 Click **Add** and add these two:
 
+⚠️ **Never commit the real values here.** This repository is public. Copy them from
+the Upstash console (or Vercel → Project → Settings → Environment Variables) and paste
+them directly into the Vercel dashboard.
+
 **Variable 1:**
 - Name: `KV_REST_API_URL`
-- Value: `https://trusted-lionfish-25758.upstash.io`
+- Value: `<your-upstash-rest-url>` (e.g. `https://<db-name>.upstash.io`)
 
 **Variable 2:**
 - Name: `KV_REST_API_TOKEN`
-- Value: `AWSeAAIncDE2NTE2YmYyZDM4NDE0NzdmYWIzNGNhMTE1MDVlYTczMHAxMjU3NTg`
+- Value: `<your-upstash-rest-token>`
 
 Make sure to add for **Production**, **Preview**, and **Development** environments.
+
+> These are the Upstash REST credentials. The code reads them via
+> `Redis.fromEnv()`, which also accepts the `UPSTASH_REDIS_REST_URL` /
+> `UPSTASH_REDIS_REST_TOKEN` names.
 
 ## Step 6: Deploy
 
