@@ -4,7 +4,6 @@
   "description": "Vercel serverless functions for visitor analytics",
   "main": "index.js",
   "dependencies": {
-    "@vercel/kv": "^1.0.0"
+    "@upstash/redis": "^1.39.0"
   }
 }
-

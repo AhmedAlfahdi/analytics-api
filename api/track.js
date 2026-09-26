@@ -1,8 +1,10 @@
 // Vercel Serverless Function for tracking page views
 // Deploy this to Vercel by creating an 'analytics-api' directory and deploying it
-// Uses Upstash Redis (compatible with @vercel/kv)
+// Uses Upstash Redis directly (migrated off the deprecated Vercel KV)
 
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
+
+const kv = Redis.fromEnv();
 
 // Check if an IP address is localhost
 function isLocalhost(ip) {

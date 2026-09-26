@@ -1,8 +1,10 @@
 // Vercel Serverless Function for badge/shield endpoints
 // Returns visitor count in a format compatible with GitHub shields
-// Uses Upstash Redis (compatible with @vercel/kv)
+// Uses Upstash Redis directly (migrated off the deprecated Vercel KV)
 
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
+
+const kv = Redis.fromEnv();
 
 // Check if an IP address is localhost
 function isLocalhost(ip) {

@@ -2,7 +2,9 @@
 // This logs ALL requests to your site, even if JavaScript is blocked
 // Works as a backup to client-side tracking
 
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
+
+const kv = Redis.fromEnv();
 
 // Check if an IP address is localhost
 function isLocalhost(ip) {
