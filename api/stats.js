@@ -216,8 +216,55 @@ export default async function handler(req, res) {
       bounceRate = Math.round((bounceSessions / sessionCount) * 100);
     }
 
-    // Recent visitors (last 20)
-    const recentVisitors = pageViews.slice(-20).reverse();
+    // Global newest-first ordering of page views, shared by the recent list and
+    // the world map. visits and server_logs are each written with lpush (newest
+    // at head), but allVisitData concatenates the two lists, so the combined
+    // array is not globally time-ordered and has to be sorted.
+    const tsOf = (v) => {
+      const t = Date.parse(v && v.timestamp);
+      return Number.isFinite(t) ? t : 0;
+    };
+    const pageViewsByRecency = pageViews
+      .map(v => [tsOf(v), v])
+      .sort((a, b) => b[0] - a[0])
+      .map(pair => pair[1]);
+
+    // Recent visitors: the 20 most recent page views.
+    // This used to be pageViews.slice(-20).reverse(); because server logs are
+    // appended after visits, the "last 20" were always server-log rows (and the
+    // oldest ones at that) rather than the newest visits.
+    const recentVisitors = pageViewsByRecency.slice(0, 20);
+
+    // Unique visitor locations for the world map: one entry per IP (its most
+    // recent visit), newest first. The frontend prefers this field and falls
+    // back to recentVisitors (20 rows) when it is absent, which left the map
+    // showing only a handful of markers.
+    const MAX_LOCATIONS = 2000;
+    const seenLocationIp = new Set();
+    const allVisitorLocations = [];
+    for (const v of pageViewsByRecency) {
+      if (allVisitorLocations.length >= MAX_LOCATIONS) break;
+      const ip = v.ip;
+      if (!ip || seenLocationIp.has(ip)) continue;
+      // Coerce: the frontend requires typeof latitude/longitude === 'number'.
+      const latitude = typeof v.latitude === 'number' ? v.latitude : parseFloat(v.latitude);
+      const longitude = typeof v.longitude === 'number' ? v.longitude : parseFloat(v.longitude);
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) continue;
+      seenLocationIp.add(ip);
+      allVisitorLocations.push({
+        ip,
+        latitude,
+        longitude,
+        city: v.city || null,
+        regionCode: v.regionCode || null,
+        countryCode: v.countryCode || null,
+        timestamp: v.timestamp || null,
+        path: v.path || null,
+        deviceType: v.deviceType || null,
+        browser: v.browser || null,
+        os: v.os || null,
+      });
+    }
 
     // Convert object breakdowns to sorted arrays for easier frontend consumption
     const toSortedArray = (obj) =>
@@ -232,6 +279,7 @@ export default async function handler(req, res) {
       topPage: topPages[0]?.path || '/',
       topPages,
       recentVisitors,
+      allVisitorLocations,
       deviceTypes: toSortedArray(deviceTypes),
       browsers: toSortedArray(browsers),
       operatingSystems: toSortedArray(operatingSystems),
